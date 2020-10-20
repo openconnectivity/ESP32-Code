@@ -1,0 +1,21 @@
+[
+  {
+    "path" : "/binarylight",
+    "rt"   : [ "oic.r.switch.binary" ],
+    "if"   : ["oic.if.baseline", "oic.if.a" ],
+    "remove_properties" : [ "range", "step" , "id", "precision" ]
+  },
+  {
+    "path" : "/binaryswitch",
+    "rt"   : [ "oic.r.sensor.touch" ],
+    "if"   : ["oic.if.baseline", "oic.if.s" ],
+    "remove_properties" : [ "range", "step" , "id", "precision" ],
+    "remove_methods" : ["post"]
+  },
+  {
+    "path" : "/oic/p",
+    "rt"   : [ "oic.wk.p" ],
+    "if"   : ["oic.if.baseline", "oic.if.r" ],
+    "remove_properties" : [ "n", "range", "value", "step", "precision", "vid"  ]
+  }
+]
