@@ -3,7 +3,6 @@
   "device_type" : "oic.d.esp32example",
   "ocf_base_path" : "~",
   "implementation_paths" : [
-    "/.",
     "/iot-lite",
     "/iot",
     "~/new-imp"
