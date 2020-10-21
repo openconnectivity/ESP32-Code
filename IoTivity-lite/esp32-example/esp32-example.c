@@ -24,7 +24,7 @@
 * register_resources
 *  function that registers all endpoints, e.g. sets the RETRIEVE/UPDATE handlers for each end point
 *
-* main
+* main 
 *  starts the stack, with the registered resources.
 *
 * Each resource has:
@@ -51,22 +51,31 @@
 *
 */
 /*
- tool_version          : 20171123
- input_file            : /home/cstevens1/workspace/test/device_output/out_codegeneration_merged.swagger.json
- version of input_file : 20190222
- title of input_file   : DueExample
+ tool_version          : 20200103
+ input_file            : /home/clarke/workspace/esp32/device_output/out_codegeneration_merged.swagger.json
+ version of input_file : 2019-02-22
+ title of input_file   : ESP32Example
 */
 
 #include "oc_api.h"
 #include "port/oc_clock.h"
 #include <signal.h>
 
+#ifdef OC_CLOUD
+#include "oc_cloud.h"
+#endif
+#if defined(OC_IDD_API)
+#include "oc_introspection.h"
+#endif
+
 #ifdef __linux__
 /* linux specific code */
 #include <pthread.h>
+#ifndef NO_MAIN
 static pthread_mutex_t mutex;
 static pthread_cond_t cv;
 static struct timespec ts;
+#endif /* NO_MAIN */
 #endif
 
 #ifdef WIN32
@@ -91,7 +100,7 @@ static char g_binarylight_RESOURCE_PROPERTY_NAME_value[] = "value"; /* the name 
 bool g_binarylight_value = false; /* current value of property "value" The status of the switch. */
 /* global property variables for path: "/binaryswitch" */
 static char g_binaryswitch_RESOURCE_PROPERTY_NAME_value[] = "value"; /* the name for the attribute */
-bool g_binaryswitch_value = true; /* current value of property "value" The touch sensor, true = sensed, false = not sensed. *//* registration data variables for the resources */
+bool g_binaryswitch_value = false; /* current value of property "value" The touch sensor, true = sensed, false = not sensed. *//* registration data variables for the resources */
 
 /* global resource variables for path: /binarylight */
 static char g_binarylight_RESOURCE_ENDPOINT[] = "/binarylight"; /* used path for this resource */
@@ -117,10 +126,41 @@ app_init(void)
   /* the settings determine the appearance of the device on the network
      can be OCF1.3.1 or OCF2.0.0 (or even higher)
      supplied values are for OCF1.3.1 */
-  ret |= oc_add_device("/oic/d", "oic.d.dueexample", "DueExample",
+  ret |= oc_add_device("/oic/d", "oic.d.esp32example", "ESP32Example", 
                        "ocf.2.0.5", /* icv value */
                        "ocf.res.1.3.0, ocf.sh.1.3.0",  /* dmv value */
                        NULL, NULL);
+                       
+#if defined(OC_IDD_API)
+  FILE *fp;
+  uint8_t *buffer;
+  size_t buffer_size;
+  const char introspection_error[] =
+    "\tERROR Could not read 'server_introspection.cbor'\n"
+    "\tIntrospection data not set for device.\n";
+  fp = fopen("./server_introspection.cbor", "rb");
+  if (fp) {
+    fseek(fp, 0, SEEK_END);
+    buffer_size = ftell(fp);
+    rewind(fp);
+
+    buffer = (uint8_t *)malloc(buffer_size * sizeof(uint8_t));
+    size_t fread_ret = fread(buffer, buffer_size, 1, fp);
+    fclose(fp);
+
+    if (fread_ret == 1) {
+      oc_set_introspection_data(0, buffer, buffer_size);
+      PRINT("\tIntrospection data set from 'server_introspection.cbor' for device %d [bytes]\n", (int)buffer_size);
+    } else {
+      PRINT("%s", introspection_error);
+    }
+    free(buffer);
+  } else {
+    PRINT("%s", introspection_error);
+  }
+#else
+    PRINT("\t introspection via header file\n");
+#endif
   return ret;
 }
 
@@ -143,7 +183,7 @@ convert_if_string(char *interface_name)
 }
 
 /**
-* helper function to check if the POST input document contains
+* helper function to check if the POST input document contains 
 * the common readOnly properties or the resouce readOnly properties
 * @param name the name of the property
 * @return the error_status, e.g. if error_status is true, then the input document contains something illegal
@@ -166,12 +206,12 @@ check_on_readonly_common_resource_properties(oc_string_t name, bool error_state)
   } else if (strcmp ( oc_string(name), "id") == 0) {
     error_state = true;
     PRINT ("   property \"id\" is ReadOnly \n");
-  }
+  } 
   return error_state;
 }
 
 
-
+ 
 /**
 * get method for "/binarylight" resource.
 * function is called to intialize the return values of the GET method.
@@ -193,12 +233,12 @@ get_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *use
   /* TODO: SENSOR add here the code to talk to the HW if one implements a sensor.
      the call to the HW needs to fill in the global variable before it returns to this function here.
      alternative is to have a callback from the hardware that sets the global variables.
-
+  
      The implementation always return everything that belongs to the resource.
      this implementation is not optimal, but is functionally correct and will pass CTT1.2.2 */
   bool error_state = false;
-
-
+  
+  
   PRINT("-- Begin get_binarylight: interface %d\n", interfaces);
   oc_rep_start_root_object();
   switch (interfaces) {
@@ -207,7 +247,7 @@ get_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *use
   case OC_IF_A:
   PRINT("   Adding Baseline info\n" );
     oc_process_baseline_interface(request->resource);
-
+    
     /* property (boolean) 'value' */
     oc_rep_set_boolean(root, value, g_binarylight_value);
     PRINT("   %s : %s\n", g_binarylight_RESOURCE_PROPERTY_NAME_value,  btoa(g_binarylight_value));
@@ -224,7 +264,7 @@ get_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *use
   }
   PRINT("-- End get_binarylight\n");
 }
-
+ 
 /**
 * get method for "/binaryswitch" resource.
 * function is called to intialize the return values of the GET method.
@@ -246,12 +286,12 @@ get_binaryswitch(oc_request_t *request, oc_interface_mask_t interfaces, void *us
   /* TODO: SENSOR add here the code to talk to the HW if one implements a sensor.
      the call to the HW needs to fill in the global variable before it returns to this function here.
      alternative is to have a callback from the hardware that sets the global variables.
-
+  
      The implementation always return everything that belongs to the resource.
      this implementation is not optimal, but is functionally correct and will pass CTT1.2.2 */
   bool error_state = false;
-
-
+  
+  
   PRINT("-- Begin get_binaryswitch: interface %d\n", interfaces);
   oc_rep_start_root_object();
   switch (interfaces) {
@@ -260,7 +300,7 @@ get_binaryswitch(oc_request_t *request, oc_interface_mask_t interfaces, void *us
   case OC_IF_S:
   PRINT("   Adding Baseline info\n" );
     oc_process_baseline_interface(request->resource);
-
+    
     /* property (boolean) 'value' */
     oc_rep_set_boolean(root, value, g_binaryswitch_value);
     PRINT("   %s : %s\n", g_binaryswitch_RESOURCE_PROPERTY_NAME_value,  btoa(g_binaryswitch_value));
@@ -277,7 +317,7 @@ get_binaryswitch(oc_request_t *request, oc_interface_mask_t interfaces, void *us
   }
   PRINT("-- End get_binaryswitch\n");
 }
-
+ 
 /**
 * post method for "/binarylight" resource.
 * The function has as input the request body, which are the input values of the POST method.
@@ -298,9 +338,9 @@ post_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *us
   bool error_state = false;
   PRINT("-- Begin post_binarylight:\n");
   oc_rep_t *rep = request->request_payload;
-
+  
   /* loop over the request document for each required input field to check if all required input fields are present */
-  bool var_in_request= false;
+  bool var_in_request= false; 
   rep = request->request_payload;
   while (rep != NULL) {
     if (strcmp ( oc_string(rep->name), g_binarylight_RESOURCE_PROPERTY_NAME_value) == 0) {
@@ -308,8 +348,8 @@ post_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *us
     }
     rep = rep->next;
   }
-  if ( var_in_request == false)
-  {
+  if ( var_in_request == false) 
+  { 
       error_state = true;
       PRINT (" required property: 'value' not in request\n");
   }
@@ -317,7 +357,7 @@ post_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *us
   rep = request->request_payload;
   while (rep != NULL) {
     PRINT("key: (check) %s \n", oc_string(rep->name));
-
+    
     error_state = check_on_readonly_common_resource_properties(rep->name, error_state);
     if (strcmp ( oc_string(rep->name), g_binarylight_RESOURCE_PROPERTY_NAME_value) == 0) {
       /* property "value" of type boolean exist in payload */
@@ -335,7 +375,7 @@ post_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *us
     while (rep != NULL) {
       PRINT("key: (assign) %s \n", oc_string(rep->name));
       /* no error: assign the variables */
-
+      
       if (strcmp ( oc_string(rep->name), g_binarylight_RESOURCE_PROPERTY_NAME_value)== 0) {
         /* assign "value" */
         PRINT ("  property 'value' : %s\n", btoa(rep->value.boolean));
@@ -348,7 +388,7 @@ post_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *us
     oc_rep_start_root_object();
     /*oc_process_baseline_interface(request->resource); */
     oc_rep_set_boolean(root, value, g_binarylight_value);
-
+    
     oc_rep_end_root_object();
     /* TODO: ACTUATOR add here the code to talk to the HW if one implements an actuator.
        one can use the global variables as input to those calls
@@ -368,10 +408,10 @@ post_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *us
 * register all the resources to the stack
 * this function registers all application level resources:
 * - each resource path is bind to a specific function for the supported methods (GET, POST, PUT)
-* - each resource is
+* - each resource is 
 *   - secure
 *   - observable
-*   - discoverable
+*   - discoverable 
 *   - used interfaces (from the global variables).
 */
 static void
@@ -388,7 +428,7 @@ register_resources(void)
   for( int a = 0; a < g_binarylight_nr_resource_interfaces; a++ ) {
     oc_resource_bind_resource_interface(res_binarylight, convert_if_string(g_binarylight_RESOURCE_INTERFACE[a]));
   }
-  oc_resource_set_default_interface(res_binarylight, convert_if_string(g_binarylight_RESOURCE_INTERFACE[0]));
+  oc_resource_set_default_interface(res_binarylight, convert_if_string(g_binarylight_RESOURCE_INTERFACE[0]));  
   PRINT("     Default OCF Interface: \"%s\"\n", g_binarylight_RESOURCE_INTERFACE[0]);
   oc_resource_set_discoverable(res_binarylight, true);
   /* periodic observable
@@ -399,11 +439,17 @@ register_resources(void)
      events are send when oc_notify_observers(oc_resource_t *resource) is called.
     this function must be called when the value changes, perferable on an interrupt when something is read from the hardware. */
   /*oc_resource_set_observable(res_binarylight, true); */
-
+   
   oc_resource_set_request_handler(res_binarylight, OC_GET, get_binarylight, NULL);
-
+  #ifdef OC_CLOUD
+  oc_cloud_add_resource(res_binarylight);
+#endif
+ 
   oc_resource_set_request_handler(res_binarylight, OC_POST, post_binarylight, NULL);
-  oc_add_resource(res_binarylight);
+  #ifdef OC_CLOUD
+  oc_cloud_add_resource(res_binarylight);
+#endif
+oc_add_resource(res_binarylight);
 
   PRINT("Register Resource with local path \"/binaryswitch\"\n");
   oc_resource_t *res_binaryswitch = oc_new_resource(NULL, g_binaryswitch_RESOURCE_ENDPOINT, g_binaryswitch_nr_resource_types, 0);
@@ -415,7 +461,7 @@ register_resources(void)
   for( int a = 0; a < g_binaryswitch_nr_resource_interfaces; a++ ) {
     oc_resource_bind_resource_interface(res_binaryswitch, convert_if_string(g_binaryswitch_RESOURCE_INTERFACE[a]));
   }
-  oc_resource_set_default_interface(res_binaryswitch, convert_if_string(g_binaryswitch_RESOURCE_INTERFACE[0]));
+  oc_resource_set_default_interface(res_binaryswitch, convert_if_string(g_binaryswitch_RESOURCE_INTERFACE[0]));  
   PRINT("     Default OCF Interface: \"%s\"\n", g_binaryswitch_RESOURCE_INTERFACE[0]);
   oc_resource_set_discoverable(res_binaryswitch, true);
   /* periodic observable
@@ -426,48 +472,14 @@ register_resources(void)
      events are send when oc_notify_observers(oc_resource_t *resource) is called.
     this function must be called when the value changes, perferable on an interrupt when something is read from the hardware. */
   /*oc_resource_set_observable(res_binaryswitch, true); */
-
+   
   oc_resource_set_request_handler(res_binaryswitch, OC_GET, get_binaryswitch, NULL);
-  oc_add_resource(res_binaryswitch);
+  #ifdef OC_CLOUD
+  oc_cloud_add_resource(res_binaryswitch);
+#endif
+oc_add_resource(res_binaryswitch);
 }
 
-#ifndef NO_MAIN
-#ifdef WIN32
-/**
-* signal the event loop (windows version)
-* wakes up the main function to handle the next callback
-*/
-static void
-signal_event_loop(void)
-{
-  WakeConditionVariable(&cv);
-}
-#endif
-#ifdef __linux__
-/**
-* signal the event loop (Linux)
-* wakes up the main function to handle the next callback
-*/
-static void
-signal_event_loop(void)
-{
-  pthread_mutex_lock(&mutex);
-  pthread_cond_signal(&cv);
-  pthread_mutex_unlock(&mutex);
-}
-#endif
-
-/**
-* handle Ctrl-C
-* @param signal the captured signal
-*/
-void
-handle_signal(int signal)
-{
-  (void)signal;
-  signal_event_loop();
-  quit = 1;
-}
 
 #ifdef OC_SECURITY
 void
@@ -492,9 +504,9 @@ factory_presets_cb(size_t device, void *data)
   int credid =
     oc_pki_add_mfg_cert(0, (const unsigned char *)my_cert, strlen(my_cert), (const unsigned char *)my_key, strlen(my_key));
   if (credid < 0) {
-    PRINT("ERROR installing manufacturer certificate\n");
+    PRINT("ERROR installing PKI certificate\n");
   } else {
-    PRINT("Successfully installed manufacturer certificate\n");
+    PRINT("Successfully installed PKI certificate\n");
   }
 
   if (oc_pki_add_mfg_intermediate_cert(0, credid, (const unsigned char *)int_ca, strlen(int_ca)) < 0) {
@@ -510,6 +522,8 @@ factory_presets_cb(size_t device, void *data)
   }
 
   oc_pki_set_security_profile(0, OC_SP_BLACK, OC_SP_BLACK, credid);
+#else
+    PRINT("No PKI certificates installed\n");
 #endif /* OC_SECURITY && OC_PKI */
 }
 
@@ -523,12 +537,93 @@ void
 initialize_variables(void)
 {
   /* initialize global variables for resource "/binarylight" */  g_binarylight_value = false; /* current value of property "value" The status of the switch. */
-  /* initialize global variables for resource "/binaryswitch" */  g_binaryswitch_value = true; /* current value of property "value" The touch sensor, true = sensed, false = not sensed. */
-
+  /* initialize global variables for resource "/binaryswitch" */  g_binaryswitch_value = false; /* current value of property "value" The touch sensor, true = sensed, false = not sensed. */
+  
   /* set the flag for NO oic/con resource. */
   oc_set_con_res_announced(false);
 
 }
+
+#ifndef NO_MAIN
+
+#ifdef WIN32
+/**
+* signal the event loop (windows version)
+* wakes up the main function to handle the next callback
+*/
+static void
+signal_event_loop(void)
+{
+  WakeConditionVariable(&cv);
+}
+#endif /* WIN32 */
+
+#ifdef __linux__
+/**
+* signal the event loop (Linux)
+* wakes up the main function to handle the next callback
+*/
+static void
+signal_event_loop(void)
+{
+  pthread_mutex_lock(&mutex);
+  pthread_cond_signal(&cv);
+  pthread_mutex_unlock(&mutex);
+}
+#endif /* __linux__ */
+
+/**
+* handle Ctrl-C
+* @param signal the captured signal
+*/
+void
+handle_signal(int signal)
+{
+  (void)signal;
+  signal_event_loop();
+  quit = 1;
+}
+
+
+#ifdef OC_CLOUD
+/**
+* cloud status handler.
+* handler to print out the status of the cloud connection
+*/
+static void
+cloud_status_handler(oc_cloud_context_t *ctx, oc_cloud_status_t status,
+                     void *data)
+{
+  (void)data;
+  PRINT("\nCloud Manager Status:\n");
+  if (status & OC_CLOUD_REGISTERED) {
+    PRINT("\t\t-Registered\n");
+  }
+  if (status & OC_CLOUD_TOKEN_EXPIRY) {
+    PRINT("\t\t-Token Expiry: ");
+    if (ctx) {
+      PRINT("%d\n", oc_cloud_get_token_expiry(ctx));
+    } else {
+      PRINT("\n");
+    }
+  }
+  if (status & OC_CLOUD_FAILURE) {
+    PRINT("\t\t-Failure\n");
+  }
+  if (status & OC_CLOUD_LOGGED_IN) {
+    PRINT("\t\t-Logged In\n");
+  }
+  if (status & OC_CLOUD_LOGGED_OUT) {
+    PRINT("\t\t-Logged Out\n");
+  }
+  if (status & OC_CLOUD_DEREGISTERED) {
+    PRINT("\t\t-DeRegistered\n");
+  }
+  if (status & OC_CLOUD_REFRESHED_TOKEN) {
+    PRINT("\t\t-Refreshed Token\n");
+  }
+}
+#endif // OC_CLOUD
 
 /**
 * main application.
@@ -560,12 +655,33 @@ int init;
   sigaction(SIGINT, &sa, NULL);
 #endif
 
-  PRINT("Used input file : \"/home/cstevens1/workspace/test/device_output/out_codegeneration_merged.swagger.json\"\n");
-  PRINT("OCF Server name : \"DueExample\"\n");
+  PRINT("Used input file : \"/home/clarke/workspace/esp32/device_output/out_codegeneration_merged.swagger.json\"\n");
+  PRINT("OCF Server name : \"ESP32Example\"\n");
 
   /*intialize the variables */
   initialize_variables();
 
+/*
+ The storage folder depends on the build system
+ for Windows the projects simpleserver and cloud_server are overwritten, hence the folders should be the same as those targets.
+ for Linux (as default) the folder is created in the makefile, with $target as name with _cred as post fix.
+*/
+#ifdef OC_SECURITY
+  PRINT("Intialize Secure Resources\n");
+#ifdef WIN32
+#ifdef OC_CLOUD
+  PRINT("\t storage at './cloudserver_creds' \n");
+  oc_storage_config("./cloudserver_creds");
+#else
+  PRINT("\t storage at './simpleserver_creds' \n");
+  oc_storage_config("./simpleserver_creds/");
+#endif
+#else
+  PRINT("\t storage at './device_builder_server_creds' \n");
+  oc_storage_config("./device_builder_server_creds");
+#endif
+  
+#endif /* OC_SECURITY */
 
   /* initializes the handlers structure */
   static const oc_handler_t handler = {.init = app_init,
@@ -573,14 +689,11 @@ int init;
                                        .register_resources = register_resources
 #ifdef OC_CLIENT
                                        ,
-                                       .requests_entry = 0
+                                       .requests_entry = 0 
 #endif
                                        };
 
-#ifdef OC_SECURITY
-  PRINT("Intialize Secure Resources\n");
-  oc_storage_config("./devicebuilderserver_creds");
-#endif /* OC_SECURITY */
+
 
 #ifdef OC_SECURITY
   /* please comment out if the server:
@@ -591,8 +704,8 @@ int init;
 #endif /* OC_SECURITY */
 
   oc_set_factory_presets_cb(factory_presets_cb, NULL);
-
-
+  
+  
   /* start the stack */
   init = oc_main_init(&handler);
 
@@ -601,7 +714,16 @@ int init;
     return init;
   }
 
-  PRINT("OCF server \"DueExample\" running, waiting on incoming connections.\n");
+#ifdef OC_CLOUD
+  /* get the cloud context and start the cloud */
+  PRINT("Start Cloud Manager\n");
+  oc_cloud_context_t *ctx = oc_cloud_get_context(0);
+  if (ctx) {
+    oc_cloud_manager_start(ctx, cloud_status_handler, NULL);
+  }
+#endif 
+
+  PRINT("OCF server \"ESP32Example\" running, waiting on incoming connections.\n");
 
 #ifdef WIN32
   /* windows specific loop */
@@ -618,7 +740,7 @@ int init;
     }
   }
 #endif
-
+  
 #ifdef __linux__
   /* linux specific loop */
   while (quit != 1) {
@@ -636,6 +758,10 @@ int init;
 #endif
 
   /* shut down the stack */
+#ifdef OC_CLOUD
+  PRINT("Stop Cloud Manager\n");
+  oc_cloud_manager_stop(ctx);
+#endif
   oc_main_shutdown();
   return 0;
 }
