@@ -1,6 +1,6 @@
 {
-  "friendly_name" : "DueExample",
-  "device_type" : "oic.d.dueexample",
+  "friendly_name" : "ESP32Example",
+  "device_type" : "oic.d.esp32example",
   "ocf_base_path" : "~",
   "implementation_paths" : [
     "/iot-lite",
@@ -8,6 +8,7 @@
     "~/new-imp"
   ],
   "platforms" : [
+    "esp32",
     "arduino",
     "windows",
     "android"
