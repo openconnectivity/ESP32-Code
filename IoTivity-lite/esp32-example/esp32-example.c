@@ -398,7 +398,7 @@ post_binarylight(oc_request_t *request, oc_interface_mask_t interfaces, void *us
     /* TODO: ACTUATOR add here the code to talk to the HW if one implements an actuator.
        one can use the global variables as input to those calls
        the global values have been updated already with the data from the request */
-    Print("Light value: %d\n", g_binarylight_value);
+    PRINT("Light value: %d\n", g_binarylight_value);
     gpio_set_level(LED_GPIO_PIN, g_binarylight_value);
     oc_send_response(request, OC_STATUS_CHANGED);
   }
