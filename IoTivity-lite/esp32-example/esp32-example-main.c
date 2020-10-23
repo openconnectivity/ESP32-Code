@@ -23,6 +23,7 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "debug_print.h"
+#include "driver/gpio.h"
 
 #include <pthread.h>
 #include <stdio.h>
