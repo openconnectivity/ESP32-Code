@@ -32,6 +32,7 @@
 
 #define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
 #define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
+#define LED_GPIO_PIN 13
 
 static EventGroupHandle_t wifi_event_group;
 
