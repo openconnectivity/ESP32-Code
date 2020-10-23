@@ -57,57 +57,74 @@ signal_event_loop(void)
   pthread_mutex_unlock(&mutex);
 }
 
-static esp_err_t event_handler(void *ctx, system_event_t *event)
+static void sta_start(void *esp_netif, esp_event_base_t event_base,
+                      int32_t event_id, void *event_data)
 {
-  switch (event->event_id)
-  {
-  case SYSTEM_EVENT_STA_START:
-    esp_wifi_connect();
-    break;
+  esp_wifi_connect();
+}
 
-  case SYSTEM_EVENT_STA_GOT_IP:
-    xEventGroupSetBits(wifi_event_group, IPV4_CONNECTED_BIT);
-    break;
+static void sta_disconnected(void *esp_netif, esp_event_base_t event_base,
+                             int32_t event_id, void *event_data)
+{
+  esp_wifi_connect();
+  xEventGroupClearBits(wifi_event_group, IPV4_CONNECTED_BIT);
+  xEventGroupClearBits(wifi_event_group, IPV6_CONNECTED_BIT);
+}
 
-  case SYSTEM_EVENT_STA_DISCONNECTED:
-    /* This is a workaround as ESP32 WiFi libs don't currently
-           auto-reassociate. */
-    esp_wifi_connect();
-    xEventGroupClearBits(wifi_event_group, IPV4_CONNECTED_BIT);
-    xEventGroupClearBits(wifi_event_group, IPV6_CONNECTED_BIT);
-    break;
+static void sta_connected(void *esp_netif, esp_event_base_t event_base,
+                          int32_t event_id, void *event_data)
+{
+  esp_netif_create_ip6_linklocal(esp_netif);
+}
 
-  case SYSTEM_EVENT_STA_CONNECTED:
-    tcpip_adapter_create_ip6_linklocal(TCPIP_ADAPTER_IF_STA);
-    break;
+static void got_ip(void *esp_netif, esp_event_base_t event_base,
+                   int32_t event_id, void *event_data)
+{
+  xEventGroupSetBits(wifi_event_group, IPV4_CONNECTED_BIT);
+}
 
-  case SYSTEM_EVENT_AP_STA_GOT_IP6:
-    xEventGroupSetBits(wifi_event_group, IPV6_CONNECTED_BIT);
-    break;
-
-  default:
-    break;
-  }
-
-  return ESP_OK;
+static void got_ip6(void *esp_netif, esp_event_base_t event_base,
+                    int32_t event_id, void *event_data)
+{
+  xEventGroupSetBits(wifi_event_group, IPV6_CONNECTED_BIT);
 }
 
 static void initialise_wifi(void)
 {
-  esp_netif_init();
-  wifi_event_group = xEventGroupCreate();
-  ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
-  esp_netif_create_default_wifi_sta();
+  esp_err_t err = esp_event_loop_create_default();
+  if (err != ESP_OK && err != ESP_ERR_INVALID_STATE)
+  {
+    ESP_ERROR_CHECK(err);
+  }
+  ESP_ERROR_CHECK(esp_netif_init());
+  char *desc;
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));
   ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+
+  esp_netif_inherent_config_t esp_netif_config = ESP_NETIF_INHERENT_DEFAULT_WIFI_STA();
+  // Prefix the interface description with the module TAG
+  // Warning: the interface desc is used in tests to capture actual connection details (IP, gw, mask)
+  asprintf(&desc, "%s: %s", TAG, esp_netif_config.if_desc);
+  esp_netif_config.if_desc = desc;
+  esp_netif_config.route_prio = 128;
+  esp_netif_t *netif = esp_netif_create_wifi(WIFI_IF_STA, &esp_netif_config);
+  free(desc);
+  ESP_ERROR_CHECK(esp_wifi_set_default_wifi_sta_handlers());
+
+  wifi_event_group = xEventGroupCreate();
+  ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, sta_disconnected, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_START, sta_start, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED, sta_connected, netif));
+  ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, got_ip, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_GOT_IP6, got_ip6, NULL));
+
   wifi_config_t wifi_config = {
       .sta = {
           .ssid = EXAMPLE_WIFI_SSID,
           .password = EXAMPLE_WIFI_PASS,
       },
   };
-
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
   ESP_ERROR_CHECK(esp_wifi_start());
