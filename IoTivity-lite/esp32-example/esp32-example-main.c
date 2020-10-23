@@ -277,6 +277,8 @@ void app_main(void)
   {
     print_error("nvs_flash_init failed");
   }
+  gpio_reset_pin(LED_GPIO_PIN);
+  gpio_set_direction(LED_GPIO_PIN, GPIO_MODE_OUTPUT);
 
   pthread_cond_init(&cv, NULL);
 
