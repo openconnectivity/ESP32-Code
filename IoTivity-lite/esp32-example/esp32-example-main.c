@@ -33,7 +33,6 @@
 
 #define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
 #define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
-#define BLINK_GPIO CONFIG_BLINK_GPIO
 
 static EventGroupHandle_t wifi_event_group;
 
@@ -279,8 +278,6 @@ void app_main(void)
   {
     print_error("nvs_flash_init failed");
   }
-  gpio_reset_pin(BLINK_GPIO);
-  gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
 
   pthread_cond_init(&cv, NULL);
 
