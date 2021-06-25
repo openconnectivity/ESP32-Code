@@ -21,8 +21,15 @@
       "remove_properties" : [ "range", "step" , "id", "precision" ]
     },
     {
-      "path" : "/binaryswitch",
-      "rt"   : [ "oic.r.sensor.touch" ],
+      "path" : "/binaryswitch1",
+      "rt"   : [ "oic.r.switch.binary" ],
+      "if"   : ["oic.if.baseline", "oic.if.s" ],
+      "remove_properties" : [ "range", "step" , "id", "precision" ],
+      "remove_methods" : ["post"]
+    },
+    {
+      "path" : "/binaryswitch2",
+      "rt"   : [ "oic.r.switch.binary" ],
       "if"   : ["oic.if.baseline", "oic.if.s" ],
       "remove_properties" : [ "range", "step" , "id", "precision" ],
       "remove_methods" : ["post"]
