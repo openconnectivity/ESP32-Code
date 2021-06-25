@@ -279,6 +279,10 @@ void app_main(void)
   }
   gpio_reset_pin(LED_GPIO_PIN);
   gpio_set_direction(LED_GPIO_PIN, GPIO_MODE_OUTPUT);
+  gpio_reset_pin(SWITCH1_GPIO_PIN);
+  gpio_set_direction(SWITCH1_GPIO_PIN, GPIO_MODE_INPUT);
+  gpio_reset_pin(SWITCH2_GPIO_PIN);
+  gpio_set_direction(SWITCH2_GPIO_PIN, GPIO_MODE_INPUT);
 
   pthread_cond_init(&cv, NULL);
 

@@ -61,7 +61,9 @@
 #include <signal.h>
 #include "driver/gpio.h"
 
-#define LED_GPIO_PIN 13
+#define LED_GPIO_PIN      13
+#define SWITCH1_GPIO_PIN  0
+#define SWITCH2_GPIO_PIN  35
 
 #ifdef OC_CLOUD
 #include "oc_cloud.h"
@@ -282,6 +284,9 @@ get_binaryswitch1(oc_request_t *request, oc_interface_mask_t interfaces, void *u
 
      The implementation always return everything that belongs to the resource.
      this implementation is not optimal, but is functionally correct and will pass CTT1.2.2 */
+  g_binaryswitch1_value = gpio_get_level(SWITCH1_GPIO_PIN);
+  PRINT("Switch 1 value: %d\n", g_binaryswitch1_value);
+
   bool error_state = false;
   int oc_status_code = OC_STATUS_OK;
 
@@ -340,6 +345,9 @@ get_binaryswitch2(oc_request_t *request, oc_interface_mask_t interfaces, void *u
 
      The implementation always return everything that belongs to the resource.
      this implementation is not optimal, but is functionally correct and will pass CTT1.2.2 */
+  g_binaryswitch2_value = gpio_get_level(SWITCH2_GPIO_PIN);
+  PRINT("Switch 2 value: %d\n", g_binaryswitch2_value);
+
   bool error_state = false;
   int oc_status_code = OC_STATUS_OK;
 
@@ -603,6 +611,13 @@ random_pin_cb(const unsigned char *pin, size_t pin_len, void *data)
 void
 factory_presets_cb(size_t device, void *data)
 {
+  gpio_reset_pin(LED_GPIO_PIN);
+  gpio_set_direction(LED_GPIO_PIN, GPIO_MODE_OUTPUT);
+  gpio_reset_pin(SWITCH1_GPIO_PIN);
+  gpio_set_direction(SWITCH1_GPIO_PIN, GPIO_MODE_INPUT);
+  gpio_reset_pin(SWITCH2_GPIO_PIN);
+  gpio_set_direction(SWITCH2_GPIO_PIN, GPIO_MODE_INPUT);
+
   (void)device;
   (void)data;
 #if defined(OC_SECURITY) && defined(OC_PKI)
