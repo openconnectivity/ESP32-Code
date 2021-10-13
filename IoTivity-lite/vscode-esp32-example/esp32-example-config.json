@@ -1,0 +1,44 @@
+{
+  "friendly_name" : "ESP32Example",
+  "device_type" : "oic.d.esp32example",
+  "ocf_base_path" : "~",
+  "implementation_paths" : [
+    "/iot-lite",
+    "/iot",
+    "~/new-imp"
+  ],
+  "platforms" : [
+    "esp32",
+    "arduino",
+    "windows",
+    "android"
+  ],
+  "device_description" : [
+    {
+      "path" : "/binarylight",
+      "rt"   : [ "oic.r.switch.binary" ],
+      "if"   : ["oic.if.baseline", "oic.if.a" ],
+      "remove_properties" : [ "range", "step" , "id", "precision" ]
+    },
+    {
+      "path" : "/binaryswitch1",
+      "rt"   : [ "oic.r.switch.binary" ],
+      "if"   : ["oic.if.baseline", "oic.if.s" ],
+      "remove_properties" : [ "range", "step" , "id", "precision" ],
+      "remove_methods" : ["post"]
+    },
+    {
+      "path" : "/binaryswitch2",
+      "rt"   : [ "oic.r.switch.binary" ],
+      "if"   : ["oic.if.baseline", "oic.if.s" ],
+      "remove_properties" : [ "range", "step" , "id", "precision" ],
+      "remove_methods" : ["post"]
+    },
+    {
+      "path" : "/oic/p",
+      "rt"   : [ "oic.wk.p" ],
+      "if"   : ["oic.if.baseline", "oic.if.r" ],
+      "remove_properties" : [ "n", "range", "value", "step", "precision", "vid"  ]
+    }
+  ]
+}
